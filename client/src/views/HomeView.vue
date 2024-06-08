@@ -2,6 +2,9 @@
 import { useAuthStore } from '@/stores/auth';
 import { ref } from 'vue';
 import SelectCustom from '../components/SelectCustom.vue'
+import ModalAddBalance from '../components/ModalAddBalance.vue'
+import { useRouter } from 'vue-router';
+import clientAxios from '@/utils/axiosConfig';
 
 let loading = ref(false)
 let selectOptionColor = ref('')
@@ -9,38 +12,90 @@ let selectOptionEvenOdd = ref('')
 let betNumber = ref(null)
 let betAmount = ref(0)
 
+let showMenu = ref(false)
+let showModal = ref(false)
+
 const colors = ["", "Negro", "Rojo"]
 const evenOdd = ["", "Par", "Impar"]
 
+const router = useRouter();
 const authStore = useAuthStore();
 
-const handlerShow = () => {
-  if(!selectOptionColor.value && !selectOptionEvenOdd.value && !isValidNumber(betNumber.value)) {
+const handlerShow = async () => {
+  if (!selectOptionColor.value && !selectOptionEvenOdd.value && !isValidNumber(betNumber.value)) {
     console.log("Debe apostar a algo");
     return
   }
 
-  if(betAmount.value < 1) {
+  if (betAmount.value > authStore.user.user.balance) {
+    console.log("No tienes suficiente dinero");
+    return
+  }
+
+  if (betAmount.value < 1) {
     console.log("Debe ingresar un monto");
     return
   }
 
   loading.value = true
-  setTimeout(() => {
-    loading.value = false
-  }, 5000)
+  await clientAxios.post('/users/play', {
+    Color: selectOptionColor.value,
+    EvenOdd: selectOptionEvenOdd.value,
+    Number: betNumber.value ? betNumber.value : undefined,
+    Amount: betAmount.value,
+  }, {
+    headers: {
+      'Authorization': `Bearer ${authStore.user.token}`
+    }
+  }).then(res => {
+    console.log(res.data);
+  })
+    .catch(err => console.log(err))
+    .finally(resul => loading.value = false)
 }
 
 function isValidNumber(value) {
   return value !== null && value !== undefined && Number.isFinite(value) && value >= 0 && value <= 36;
 }
 
+const toggleMenu = () => {
+  showMenu.value = !showMenu.value
+}
+
+const handlerShowModal = () => {
+  showModal.value = !showModal.value
+  showMenu.value = !showMenu.value
+}
+
+const logout = () => {
+  authStore.logout()
+  router.push('/login');
+}
 
 </script>
 
 <template>
   <header>
     <h1>Bienvenido al Juego de la Ruleta</h1>
+    <div class="menu">
+      <div class="buttonMenu">
+        <span>{{ authStore.user.user.username }}</span>
+        <button @click="toggleMenu">Menu</button>
+      </div>
+
+      <div v-if="showMenu" class="options">
+        <div class="yourBalance">
+          <p>Tu Saldo</p>
+          <span>$ {{ authStore.user.user.balance }}</span>
+        </div>
+        <div class="option">
+          <p @click="handlerShowModal">Cargar Saldo</p>
+        </div>
+        <div class="option">
+          <p @click="logout">Cerrar Sesion</p>
+        </div>
+      </div>
+    </div>
   </header>
   <div class="container">
     <div :class="`${loading ? 'rouletteMove' : 'roulette'}`">
@@ -53,12 +108,14 @@ function isValidNumber(value) {
     <div class="betContainer">
       <h2>Realiza Tu Apuesta</h2>
       <div class="betOptions">
-        <SelectCustom title="Color" :items="colors" v-model:selected="selectOptionColor" />
-        <SelectCustom title="Par o Impar" :items="evenOdd" v-model:selected="selectOptionEvenOdd" />
+        <SelectCustom title="Color" :items="colors" v-model:selected="selectOptionColor" :active=true />
+        <SelectCustom title="Par o Impar" :items="evenOdd" v-model:selected="selectOptionEvenOdd"
+          :active=!!selectOptionColor />
       </div>
       <div class="betnumber">
         <label>APUESTE A UN NUMERO</label>
-        <input type="number" v-model="betNumber" :min="0" :max="36" />
+        <input type="number" v-model="betNumber" :min="0" :max="36"
+          :disabled="!selectOptionColor || (!!selectOptionColor && !!selectOptionEvenOdd)" />
       </div>
       <div class="amount">
         <label>Ingrese un monto</label>
@@ -67,19 +124,82 @@ function isValidNumber(value) {
     </div>
     <button class="btn" :disabled=loading @click="handlerShow">Girar Ruleta</button>
   </div>
+  <ModalAddBalance v-if="showModal" v-model:showModal="showModal" />
 </template>
 
 <style scoped>
 header {
   background-color: #1f2833;
   padding: 10px;
+  position: relative;
+}
+
+.yourBalance {
+  color: white;
+  padding: 8px 10px;
+  margin-top: 2px;
+  background-color: #53b3ac;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+}
+
+.yourBalance span {
+  color: green;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.menu {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(-10%, -50%);
+}
+
+.buttonMenu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buttonMenu span {
+  color: white;
+  user-select: none;
+}
+
+.menu button {
+  background-color: #66fcf1;
+  border: none;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.options {
+  position: absolute;
+  right: 0;
+  width: 130px;
+  background-color: #1f2833;
+}
+
+.option:hover {
+  background-color: #489691;
+}
+
+.option {
+  color: white;
+  padding: 8px 10px;
+  margin-top: 2px;
+  background-color: #53b3ac;
+  cursor: pointer;
 }
 
 header h1 {
   font-family: 'Playfair Display', serif;
   color: #66fcf1;
-  margin: 0;
   text-align: center;
+  font-size: 26px;
 }
 
 .container {

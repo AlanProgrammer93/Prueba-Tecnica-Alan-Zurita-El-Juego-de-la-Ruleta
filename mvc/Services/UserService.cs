@@ -24,16 +24,34 @@ namespace mvc.Services
             _dbContext = dbContext;
         }
 
-        public async Task<User> CreateUserAsync(User user)
+        public async Task<UserLoginReturnDto> CreateUserAsync(User user)
         {
             try
             {
+                /* var userExist = await _dbContext.Users.FirstOrDefaultAsync(
+                    user => user.Username == user.Username
+                );
+
+                if (userExist != null)
+                {
+                    throw new ArgumentNullException(nameof(userExist), "Ya existe el username ingresado.");
+                } */
+
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(user.Password);
                 user.Password = passwordHash;
                 user.Balance = 0;
                 _dbContext.Users.Add(user);
                 await _dbContext.SaveChangesAsync();
-                return user;
+
+                var token = GenerateJwtToken(user.Username);
+                 
+                UserLoginReturnDto result = new()
+                {
+                    user = user,
+                    token = token
+                };
+
+                return result;
             }
             catch
             {
@@ -48,6 +66,7 @@ namespace mvc.Services
                 var user = await _dbContext.Users.FirstOrDefaultAsync(
                     user => user.Username == data.Username
                 );
+
                 if (user == null)
                 {
                     throw new ArgumentNullException(nameof(user), "No existe usuario activo");
@@ -90,12 +109,30 @@ namespace mvc.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
+
+        public async Task<User> UpdateBalance(string username, float amount)
+        {
+            try
+            {
+                var user = await _dbContext.Users.FirstOrDefaultAsync(
+                    user => user.Username == username
+                );
+                user.Balance = user.Balance + amount;
+                
+                await _dbContext.SaveChangesAsync();
+                return user;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 
     public interface IUserService
     {
-        Task<User> CreateUserAsync(User user);
+        Task<UserLoginReturnDto> CreateUserAsync(User user);
         Task<UserLoginReturnDto> UserLoginAsync(UserLoginDto user);
-
+        Task<User> UpdateBalance(string username, float amount);
     }
 }

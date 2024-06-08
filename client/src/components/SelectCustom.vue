@@ -4,19 +4,19 @@ import { defineProps, defineEmits, ref, watch } from 'vue';
 const props = defineProps({
     title: String,
     items: Array,
-    selected: String
+    selected: String,
+    active: Boolean
 });
 
 const emits = defineEmits(['update:selected']);
 
 const selectedValue = ref(props.selected);
 
-watch(selectedValue, (newValue) => {
+/* watch(selectedValue, (newValue) => {
     emits('update:selected', newValue);
-});
+}); */
 
 function handleChange() {
-    console.log(selectedValue.value);
     emits('update:selected', selectedValue.value);
 }
 
@@ -25,7 +25,7 @@ function handleChange() {
 <template>
     <div className='selectContainer'>
         <h2>{{ props.title }}</h2>
-        <select v-model="selectedValue" @change="handleChange">
+        <select v-model="selectedValue" @change="handleChange" :disabled="!active">
             <option v-for="(item, index) in props.items" :key="item" :value="item">{{ item }}</option>
         </select>
     </div>

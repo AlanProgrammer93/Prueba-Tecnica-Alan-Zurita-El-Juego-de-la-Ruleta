@@ -17,6 +17,7 @@ const handlerShow = () => {
 }
 
 const handlerRegister = async () => {
+  console.log(username.value);
   await axios.post('http://localhost:4000/api/users/register', {
     Username: username.value,
     Password: password.value,
@@ -25,7 +26,6 @@ const handlerRegister = async () => {
     router.push('/');
   })
     .catch(err => console.log(err))
-
 }
 
 const handlerLogin = async () => {

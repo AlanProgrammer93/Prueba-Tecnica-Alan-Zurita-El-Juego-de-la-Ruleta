@@ -10,6 +10,9 @@ export const useAuthStore = defineStore('auth', {
         },
         logout() {
             this.user = null;
+        },
+        updateBalance(userUpdated) {
+            this.user.user = userUpdated;
         }
     },
     getters: {
