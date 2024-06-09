@@ -7,6 +7,7 @@ import ModalWon from '../components/ModalWon.vue'
 import { useRouter } from 'vue-router';
 import clientAxios from '@/utils/axiosConfig';
 import { usePlayStore } from '@/stores/play';
+import MessageError from '../components/MessageError.vue'
 
 let loading = ref(false)
 let selectOptionColor = ref('')
@@ -18,27 +19,28 @@ let showMenu = ref(false)
 let showModal = ref(false)
 let showModalWon = ref(false)
 
+const messageError = ref('')
+
 const colors = ["", "Negro", "Rojo"]
 const evenOdd = ["", "Par", "Impar"]
 
 const router = useRouter();
 const authStore = useAuthStore();
 const playStore = usePlayStore();
-console.log(playStore.result);
 
 const handlerShow = async () => {
   if (!selectOptionColor.value && !selectOptionEvenOdd.value && !isValidNumber(betNumber.value)) {
-    console.log("Debe apostar a algo");
+    messageError.value = "Debe Seleccionar su Apuesta"
     return
   }
 
   if (betAmount.value > authStore.user.user.balance) {
-    console.log("No tienes suficiente dinero");
+    messageError.value = "No Tienes Suficiente Dinero"
     return
   }
 
   if (betAmount.value < 1) {
-    console.log("Debe ingresar un monto");
+    messageError.value = "Debe Ingresar un Monto"
     return
   }
 
@@ -53,7 +55,6 @@ const handlerShow = async () => {
       'Authorization': `Bearer ${authStore.user.token}`
     }
   }).then(res => {
-    console.log(res.data);
     playStore.setResult({
       color: res.data.color,
       evenOdd: res.data.evenOdd,
@@ -63,7 +64,9 @@ const handlerShow = async () => {
     })
     authStore.updateBalance(res.data.user)
   })
-    .catch(err => console.log(err))
+    .catch(err => {
+      messageError.value = "Ocurrio un Error. Intentelo Otra Ves"
+    })
     .finally(resul => loading.value = false)
 }
 
@@ -83,23 +86,25 @@ const handlerShowModal = () => {
 const logout = () => {
   authStore.logout()
   router.push('/login');
+  localStorage.removeItem("token")
 }
 
 </script>
 
 <template>
+  <MessageError v-if="messageError" v-model:messageError="messageError" />
   <header>
     <h1>Bienvenido al Juego de la Ruleta</h1>
     <div class="menu">
       <div class="buttonMenu">
-        <span>{{ authStore.user.user.username }}</span>
+        <span>{{ authStore?.user?.user.username }}</span>
         <button @click="toggleMenu">Menu</button>
       </div>
 
       <div v-if="showMenu" class="options">
         <div class="yourBalance">
           <p>Tu Saldo</p>
-          <span>$ {{ authStore.user.user.balance }}</span>
+          <span>$ {{ authStore?.user?.user.balance }}</span>
         </div>
         <div class="option">
           <p @click="handlerShowModal">Cargar Saldo</p>

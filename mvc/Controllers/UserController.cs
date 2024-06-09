@@ -7,6 +7,9 @@ using mvc.Services;
 using mvc.Dto;
 using Microsoft.AspNetCore.Authorization;
 using System;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace mvc.Controllers
 {
@@ -147,6 +150,49 @@ namespace mvc.Controllers
         {
             Random random = new Random();
             return random.Next(minValue, maxValue);
+        }
+
+        [HttpGet("getUser")]
+        [Authorize]
+        public async Task<IActionResult> getUser()
+        {
+            try
+            {
+                var username = User.Identity.Name;
+                var user = await _userService.GetUser(username);
+
+                var token = GenerateJwtToken(user.Username);
+                 
+                UserLoginReturnDto result = new()
+                {
+                    user = user,
+                    token = token
+                };
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return StatusCode(500, ex.Message);
+            }
+        }
+
+        private string GenerateJwtToken(string username)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes("clave_para_token");
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.Name, username)
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
     }
 }

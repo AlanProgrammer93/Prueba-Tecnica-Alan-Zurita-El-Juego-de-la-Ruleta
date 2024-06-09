@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, defineEmits, ref, watch } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps({
     title: String,
@@ -11,10 +11,6 @@ const props = defineProps({
 const emits = defineEmits(['update:selected']);
 
 const selectedValue = ref(props.selected);
-
-/* watch(selectedValue, (newValue) => {
-    emits('update:selected', newValue);
-}); */
 
 function handleChange() {
     emits('update:selected', selectedValue.value);

@@ -2,7 +2,8 @@
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth';
-import axios from 'axios';
+import clientAxios from '@/utils/axiosConfig';
+import MessageError from '../components/MessageError.vue'
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -12,36 +13,57 @@ const username = ref('')
 const password = ref('')
 const confirmPassword = ref('')
 
+const messageError = ref('')
+
 const handlerShow = () => {
   showLogin.value = !showLogin.value
 }
 
 const handlerRegister = async () => {
-  console.log(username.value);
-  await axios.post('http://localhost:4000/api/users/register', {
+  if(!username.value || !password.value || !confirmPassword.value) {
+    messageError.value = "Complete Todos los Campos"
+    return
+  }
+  if(password.value != confirmPassword.value) {
+    messageError.value = "Las Contraseñas no Coinciden"
+    return
+  }
+  await clientAxios.post('/users/register', {
     Username: username.value,
     Password: password.value,
   }).then(res => {
     authStore.login(res.data)
     router.push('/');
   })
-    .catch(err => console.log(err))
+    .catch(err => {
+      messageError.value = "Ocurrio un Error. Intentelo Otra Ves"
+    })
 }
 
 const handlerLogin = async () => {
-  await axios.post('http://localhost:4000/api/users/login', {
+  if(!username.value || !password.value) {
+    messageError.value = "Complete Todos los Campos"
+    return
+  }
+  await clientAxios.post('/users/login', {
     Username: username.value,
     Password: password.value,
   }).then(res => {
     authStore.login(res.data)
+    localStorage.setItem("token", res.data.token)
     router.push('/');
   })
-    .catch(err => console.log(err))
+    .catch(err => {
+      messageError.value = "Usuario o Contraseña Incorrecta"
+    })
 }
 </script>
 
 <template>
   <div :class="`auth ${showLogin && 'active'}`">
+
+    <MessageError v-if="messageError" v-model:messageError="messageError" />
+
     <div class="container">
       <div class="blueBg">
         <div class="box signin">
