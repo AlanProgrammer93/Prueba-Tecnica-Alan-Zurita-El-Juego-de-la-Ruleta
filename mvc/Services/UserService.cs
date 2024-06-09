@@ -127,6 +127,21 @@ namespace mvc.Services
                 throw;
             }
         }
+
+        public async Task<User> GetUser(string username)
+        {
+            try
+            {
+                var user = await _dbContext.Users.FirstOrDefaultAsync(
+                    user => user.Username == username
+                );
+                return user;
+            }
+            catch
+            {
+                throw;
+            }
+        }
     }
 
     public interface IUserService
@@ -134,5 +149,6 @@ namespace mvc.Services
         Task<UserLoginReturnDto> CreateUserAsync(User user);
         Task<UserLoginReturnDto> UserLoginAsync(UserLoginDto user);
         Task<User> UpdateBalance(string username, float amount);
+        Task<User> GetUser(string username);
     }
 }

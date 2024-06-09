@@ -6,6 +6,7 @@ using mvc.Models;
 using mvc.Services;
 using mvc.Dto;
 using Microsoft.AspNetCore.Authorization;
+using System;
 
 namespace mvc.Controllers
 {
@@ -74,25 +75,65 @@ namespace mvc.Controllers
         [HttpPost]
         [HttpPost("play")]
         [Authorize]
-        public async Task<IActionResult> UpdateBalance([FromBody] PlayDto play)
+        public async Task<IActionResult> Play([FromBody] PlayDto play)
         {
             try
             {
                 var username = User.Identity.Name;
-                Console.WriteLine(username);
+
+                string[] arrayEvenOdd = new string[] { "Par", "Impar" };
+                string[] arrayColor = new string[] { "Negro", "Rojo" };
+
+                int winningNumber = GetRandomNumber(0, 37);
+                int indexColor = GetRandomNumber(0, 2);
+                int indexEvenOdd = GetRandomNumber(0, 2);
+
+                string resultBet = "";
+                float won = 0;
+
+                var updatedBalance = await _userService.GetUser(username);
 
                 if (string.IsNullOrEmpty(play.EvenOdd) && !play.Number.HasValue) {
-                    Console.WriteLine("apuesta solo color");
+                    if (arrayColor[indexColor] == play.Color) {
+                        won = play.Amount / 2;
+                        //updatedBalance = await _userService.UpdateBalance(username, won);
+                        resultBet = "Ganaste ";
+                    } else {
+                        updatedBalance = await _userService.UpdateBalance(username, -play.Amount);
+                        resultBet = "Perdiste ";
+                    }
                 } else if (!string.IsNullOrEmpty(play.EvenOdd)) {
-                    Console.WriteLine("apuesta color y par");
+                    if (arrayColor[indexColor] == play.Color && arrayEvenOdd[indexEvenOdd] == play.EvenOdd) {
+                        won = play.Amount;
+                        //updatedBalance = await _userService.UpdateBalance(username, play.Amount);
+                        resultBet = "Ganaste ";
+                    } else {
+                        updatedBalance = await _userService.UpdateBalance(username, -play.Amount);
+                        resultBet = "Perdiste ";
+                    }
                 } else {
-                    Console.WriteLine("apuesta color y numero");
+                    if (arrayColor[indexColor] == play.Color && winningNumber == play.Number) {
+                        won = play.Amount * 3;
+                        //updatedBalance = await _userService.UpdateBalance(username, won);
+                        resultBet = "Ganaste ";
+                    } else {
+                        updatedBalance = await _userService.UpdateBalance(username, -play.Amount);
+                        resultBet = "Perdiste ";
+                    }
                 }
 
                 await Task.Delay(2000);
                 
-                //var result = await _userService.UpdateBalance(username, balance.Balance);
-                var result = 5;
+                ResultBetDto result = new()
+                {
+                    Color = arrayColor[indexColor],
+                    EvenOdd = arrayEvenOdd[indexEvenOdd],
+                    Number = winningNumber,
+                    Result = resultBet,
+                    Won = won,
+                    User = updatedBalance
+                };
+
                 return Ok(result);
             }
             catch (Exception ex)
@@ -100,6 +141,12 @@ namespace mvc.Controllers
                 Console.WriteLine(ex);
                 return StatusCode(500, "Ocurrió un error interno en el servidor.");
             }
+        }
+
+        private int GetRandomNumber(int minValue, int maxValue)
+        {
+            Random random = new Random();
+            return random.Next(minValue, maxValue);
         }
     }
 }

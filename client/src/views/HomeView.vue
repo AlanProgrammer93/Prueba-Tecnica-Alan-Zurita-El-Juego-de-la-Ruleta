@@ -3,8 +3,10 @@ import { useAuthStore } from '@/stores/auth';
 import { ref } from 'vue';
 import SelectCustom from '../components/SelectCustom.vue'
 import ModalAddBalance from '../components/ModalAddBalance.vue'
+import ModalWon from '../components/ModalWon.vue'
 import { useRouter } from 'vue-router';
 import clientAxios from '@/utils/axiosConfig';
+import { usePlayStore } from '@/stores/play';
 
 let loading = ref(false)
 let selectOptionColor = ref('')
@@ -14,12 +16,15 @@ let betAmount = ref(0)
 
 let showMenu = ref(false)
 let showModal = ref(false)
+let showModalWon = ref(false)
 
 const colors = ["", "Negro", "Rojo"]
 const evenOdd = ["", "Par", "Impar"]
 
 const router = useRouter();
 const authStore = useAuthStore();
+const playStore = usePlayStore();
+console.log(playStore.result);
 
 const handlerShow = async () => {
   if (!selectOptionColor.value && !selectOptionEvenOdd.value && !isValidNumber(betNumber.value)) {
@@ -49,6 +54,14 @@ const handlerShow = async () => {
     }
   }).then(res => {
     console.log(res.data);
+    playStore.setResult({
+      color: res.data.color,
+      evenOdd: res.data.evenOdd,
+      number: res.data.number,
+      result: res.data.result,
+      won: res.data.won,
+    })
+    authStore.updateBalance(res.data.user)
   })
     .catch(err => console.log(err))
     .finally(resul => loading.value = false)
@@ -100,9 +113,9 @@ const logout = () => {
   <div class="container">
     <div :class="`${loading ? 'rouletteMove' : 'roulette'}`">
       <div class="result" v-if="!loading">
-        <p>Par</p>
-        <h1>50</h1>
-        <p>Color</p>
+        <p>{{ playStore.result.evenOdd }}</p>
+        <h1>{{ playStore.result.number }}</h1>
+        <p>{{ playStore.result.color }}</p>
       </div>
     </div>
     <div class="betContainer">
@@ -125,6 +138,7 @@ const logout = () => {
     <button class="btn" :disabled=loading @click="handlerShow">Girar Ruleta</button>
   </div>
   <ModalAddBalance v-if="showModal" v-model:showModal="showModal" />
+  <ModalWon v-if="playStore.result.won > 0" v-model:showModalWon="showModalWon" />
 </template>
 
 <style scoped>
@@ -260,6 +274,17 @@ header h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.result p {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.result h1 {
+  font-size: 38px;
+  font-weight: bold;
+  color: green;
 }
 
 .betContainer {

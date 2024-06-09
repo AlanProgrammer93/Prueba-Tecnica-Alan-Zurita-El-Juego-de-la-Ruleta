@@ -1,34 +1,32 @@
 <script setup>
 import { useAuthStore } from '@/stores/auth';
+import { usePlayStore } from '@/stores/play';
 import clientAxios from '@/utils/axiosConfig';
-import { ref } from 'vue';
 
 const props = defineProps({
-    showModal: Boolean,
+    showModalWon: Boolean,
 });
 
-let amount = ref(0)
-
 const authStore = useAuthStore();
-const emits = defineEmits(['update:showModal']);
+const playStore = usePlayStore();
+
+const emits = defineEmits(['update:showModalWon']);
 
 function handleChange() {
-    emits('update:showModal', false);
+    playStore.reset()
+    emits('update:showModalWon', false);
 }
 
-const handlerSubmit = async () => {
-    if (amount.value < 1) {
-        return
-    }
+const handlerSubmitWon = async () => {
     await clientAxios.post('/users/addBalance', {
-        Balance: amount.value,
+        Balance: playStore.result.won,
     }, {
         headers: {
             'Authorization': `Bearer ${authStore.user.token}`
         }
     }).then(res => {
         authStore.updateBalance(res.data)
-        amount.value = 0
+        playStore.reset()
     })
         .catch(err => console.log(err))
 }
@@ -42,16 +40,15 @@ const handlerSubmit = async () => {
                 <div class="close" @click="handleChange">
                     Salir
                 </div>
-                <span>Agregar Saldo</span>
+                <span>GANASTE!</span>
             </div>
             <div class="bodyModal">
                 <div class="addAmount">
                     <h2>Saldo Disponible</h2>
                     <span>${{ authStore.user.user.balance }}</span>
-                    <label>Ingrese un monto</label>
-                    <input type="number" v-model="amount" :min="1" />
+                    <label>Ganaste ${{ playStore.result.won }}</label>
                 </div>
-                <button class="btn" @click="handlerSubmit">Aceptar</button>
+                <button class="btn" @click="handlerSubmitWon">Recibir Premio</button>
             </div>
         </div>
     </div>
@@ -126,22 +123,10 @@ const handlerSubmit = async () => {
 }
 
 .addAmount label {
-    font-size: 26px;
+    font-size: 28px;
     color: #45a29e;
     font-weight: bold;
-    margin-top: 10px;
-}
-
-.addAmount input {
-    flex: 1;
-    border: 2px solid #45a29e;
-    background: white;
-    border-radius: 10px;
-    outline: none;
-    color: #45a29e;
-    padding-left: 15px;
-    font-size: 16px;
-    font-weight: bold;
+    margin-top: 15px;
 }
 
 .btn {
